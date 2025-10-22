@@ -6,18 +6,18 @@ on:
   workflow_dispatch:        # lets you run it manually
 
 permissions:
-  contents: write           # needed to push DB changes
+  contents: write           # allows for changes to repo - needed to push DB changes
 
 jobs:
   run-ingest:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout # pull your repo onto the runner
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up Python
+      - name: Set up Python #install python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -30,14 +30,11 @@ jobs:
       - name: Run ingest
         run: python ingest.py
 
-      - name: Commit & push if changed
+      - name: Commit & push
         run: |
-          if [[ -n "$(git status --porcelain)" ]]; then
-            git config user.name "github-actions[bot]"
+            git config user.name "github-actions[bot]"    
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add -A
-            git commit -m "Ingest: daily update [skip ci]"
+            git add .
+            git commit -m "Ingest: daily update [skip ci]" || echo "No changes to commit"
             git push
-          else
-            echo "No changes to commit."
-          fi
+
