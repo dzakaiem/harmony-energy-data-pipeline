@@ -1,4 +1,3 @@
-
 # ingest.py
 # What this does (in one breath):
 # Builds a SQL query, calls the NESO API, gets JSON, makes a DataFrame, drops bad rows, 
@@ -7,6 +6,9 @@
 import sqlite3, requests, pandas as pd
 from urllib.parse import quote
 from datetime import datetime, timedelta, UTC
+import logging, time
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 base = "https://api.neso.energy/api/3/action"
 RID  = "f93d1835-75bc-43e5-84ad-12472b180a98"  # Resource ID- Historic GB Generation Mix 
@@ -49,6 +51,7 @@ def fetch_records_from_api(base, sql):
     records = resp.json()["result"]["records"]
     if not records:
         print("No rows returned")
+    logging.info("API ok (200). Records fetched: %d", len(records))
     return records #lsit of dits - records = [
 #   {"DATETIME": "2025-10-20T20:30:00Z", "GAS": "11691.0", "COAL": "4312.0"},
 #   {"DATETIME": "2025-10-20T21:00:00Z", "GAS": "12050.0", "COAL": "4100.0"},
@@ -66,6 +69,7 @@ def to_dataframe_clean(records, cols):
     df = df.dropna(subset=["DATETIME"]) #drop rows were datetime missing values
     df = df.drop_duplicates(subset=["DATETIME"]) #remove duplicates with me datetime
     df = df.sort_values("DATETIME") #reorder rows - oldest to newest 
+    logging.info("After clean: %d rows", len(df))
     return df
 
 #create table if not exists in db
@@ -117,7 +121,10 @@ def build_rows(df, cols): #pd df, cols is a lsit of strings
     return rows
 
 def main():
+    t0 = time.time()
+    logging.info("Ingest started")
     start_iso, end_iso = build_time_window()
+    logging.info("Window %s → %s", start_iso, end_iso)
     sql = build_sql_query(cols, RID, start_iso, end_iso)
     records = fetch_records_from_api(base, sql)
     df = to_dataframe_clean(records, cols)
@@ -134,6 +141,7 @@ def main():
     con.commit()
     con.close()
 
+    logging.info("Upserted %d rows into %s → table '%s' (%.2fs)", len(rows), dp_path, table, time.time() - t0)
     print(f"Upserted {len(rows)} rows into {dp_path} → table '{table}'")
 
 if __name__ == "__main__":

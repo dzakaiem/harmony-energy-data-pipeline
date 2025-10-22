@@ -1,6 +1,4 @@
 # streamlit_app.py
-# ChatGPT said:
-# Gotcha — here’s the script in plain steps:
 # Start the Streamlit app
 # Sets the page title/layout and shows the header “GB Generation Mix — NESO”.
 # Pick a date range
@@ -29,6 +27,9 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 from datetime import date, timedelta
+import logging, time
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 db_path = "data/generation.db"
 table   = "mix"
@@ -45,9 +46,11 @@ def main():
     start_iso = f"{d_start}T00:00:00Z" #turns start date intoa. timestamp 
     end_iso   = f"{d_end}T23:59:59Z"
 
+    logging.info("App query window %s → %s", start_iso, end_iso)
 
 #takes the input dates and uses sql query to make a df
     # 2) Load from SQLite between start/end
+    t0 = time.time()
     con = sqlite3.connect(db_path)
     sql = f"""
       SELECT * FROM {table}
@@ -56,6 +59,7 @@ def main():
     """
     df = pd.read_sql_query(sql, con)
     con.close()
+    logging.info("SQL returned %d rows in %.2fs", len(df), time.time() - t0)
 
     # 3) Handle empty + fix datetime
     if df.empty:
