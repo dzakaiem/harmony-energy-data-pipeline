@@ -81,7 +81,7 @@ def main():
     if fuels:
         st.line_chart(df.set_index("DATETIME")[fuels]) #use dateetime as x axis anf fuels on y
 
-    st.subheader("Carbon intensity (gCO₂/kWh)") # seond chart being made
+    st.subheader("Average carbon intensity (gCO₂/kWh)") # seond chart being made
     if "CARBON_INTENSITY" in df.columns:
         st.line_chart(df.set_index("DATETIME")["CARBON_INTENSITY"]) #of carbon intensity over time 
 
